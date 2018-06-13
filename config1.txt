@@ -1,0 +1,19 @@
+bootstrap localhost 6000
+root localhost 6001
+node_a localhost 6002
+node_b localhost 6003
+node_c localhost 6004
+node_d localhost 6005
+node_e localhost 6006
+node_f localhost 6007
+
+root node_a
+root node_c
+node_a node_b
+node_a node_c
+node_b node_c
+node_b node_e
+node_c node_d
+node_c node_f
+node_d node_e
+

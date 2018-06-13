@@ -17,7 +17,7 @@ public class Main {
         //get node info
         Scanner sc = null;
         try {
-            sc = new Scanner(new File("config.txt"));
+            sc = new Scanner(new File("config2.txt"));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
@@ -82,4 +82,3 @@ public class Main {
         }
     }
 }
-//terminate zapravo treba da pogasi sve, a ne samo taj tred

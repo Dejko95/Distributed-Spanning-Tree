@@ -12,7 +12,6 @@ public class Node {
     private ArrayList<NeighbourNode> neighbours = new ArrayList<>();
     private Vector<NeighbourNode> children = new Vector<>();
     private Vector<NeighbourNode> unrelated = new Vector<>();
-    //private NeighbourNode parent;
     private AtomicReference<NeighbourNode> parent = new AtomicReference<>();
 
     public Node(String id, String host, int port) {
@@ -43,17 +42,9 @@ public class Node {
         return children;
     }
 
-//    public NeighbourNode getParent() {
-//        return parent;
-//    }
-
     public Vector<NeighbourNode> getUnrelated() {
         return unrelated;
     }
-
-//    public void setParent(NeighbourNode parent) {
-//        this.parent = parent;
-//    }
 
     public AtomicReference<NeighbourNode> getParent() {
         return parent;

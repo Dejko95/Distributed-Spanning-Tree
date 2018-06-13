@@ -16,10 +16,7 @@ public class ConnectionReceiver implements Runnable {
         try {
             ServerSocket serverSocket = new ServerSocket(node.getPort());
             int connected = 0;
-            int bootstrapConnections = 1;
-            if (node.getId().equals("root")) {
-                bootstrapConnections = 2;
-            }
+            int bootstrapConnections = 2;
             while (connected < node.getNeighbours().size() + bootstrapConnections) {
                 Socket clientSocket = serverSocket.accept();
                 ServerThread serverThread = new ServerThread(node, clientSocket);
@@ -31,6 +28,6 @@ public class ConnectionReceiver implements Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
+        System.out.println("receiver finished");
     }
 }

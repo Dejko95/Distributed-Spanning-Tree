@@ -20,7 +20,7 @@ public class BootstrapServer {
     private void waitNodesForConnections() throws IOException {
 
         //read nodes from config
-        Scanner sc = new Scanner(new File("config.txt"));
+        Scanner sc = new Scanner(new File("config2.txt"));
         String bootstrapInfo[] = sc.nextLine().split(" ");
         port = Integer.parseInt(bootstrapInfo[2]);
         String line = sc.nextLine();
@@ -43,22 +43,40 @@ public class BootstrapServer {
         serverSocket.close();
     }
 
-    private void startAlgorithmFromRootNode() throws IOException {
-        Socket socket = new Socket(nodeMap.get("root").getHost(), nodeMap.get("root").getPort());
-        //we don't send anything, only wait for algorithm to finish ?
-        //maybe to send-----------------------------------------
+    private void pingAndWait(String nodeId) throws IOException {
+        System.out.println(nodeId + " pinged");
+        Socket socket = new Socket(nodeMap.get(nodeId).getHost(), nodeMap.get(nodeId).getPort());
 
         BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
         PrintWriter out=new PrintWriter(socket.getOutputStream(),true);
         out.println("bootstrap");
-        out.println("start");
+        out.println(nodeId.equals("root") ? "start" : "wait");
         String message = in.readLine(); //expected "finished"
+        System.out.println("message response: " + message);
         if (!message.equals("finished")) {
             System.out.println("Algorithm not finished successfully.");
             throw new IOException("Algorithm not finished successfully.");
         }
         socket.close();
     }
+
+    private void waitForTerminations() {
+        for (NodeInfo node: nodeMap.values()) {
+            if (node.getId().equals("root")) {
+                continue;
+            }
+            try {
+                pingAndWait(node.getId());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void drawGraph() {
+        new GraphDrawer(nodeMap);
+    }
+
 
     private void getTreeStructure() throws IOException {
         System.out.println("size:" + nodeMap.size());
@@ -85,67 +103,55 @@ public class BootstrapServer {
     }
 
     public static void main(String[] args) {
-        HashMap<String, NodeInfo> nodeMap = new HashMap<>();
-        for (int i=0; i<6; i++) {
-            NodeInfo node = new NodeInfo(i == 0 ? "root" : "n",",",1);
-            nodeMap.put("" + i, node);
+        BootstrapServer bootstrapServer = new BootstrapServer();
+        try {
+            bootstrapServer.waitNodesForConnections();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Port not available");
+            return;
         }
-        nodeMap.get("0").addChild(nodeMap.get("1"));
-        nodeMap.get("0").addChild(nodeMap.get("4"));
-        nodeMap.get("1").addChild(nodeMap.get("4"));
-        nodeMap.get("1").addChild(nodeMap.get("5"));
-        nodeMap.get("2").addChild(nodeMap.get("3"));
-        nodeMap.get("2").addChild(nodeMap.get("4"));
-        nodeMap.get("4").addChild(nodeMap.get("5"));
-        new GraphDrawer(nodeMap);
-        return;
-        //wait for all nodes to connect to bootstrap
-//        BootstrapServer bootstrapServer = new BootstrapServer();
-//        try {
-//            bootstrapServer.waitNodesForConnections();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            System.out.println("Port not available");
-//            return;
-//        }
-//
-//        //wait for all nodes to connect themselves
-//        while (bootstrapServer.finishedSetupConnections.get() < bootstrapServer.nodeMap.size()) {
-//            try {
-//                Thread.sleep(100);
-//            } catch (InterruptedException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//
-//        //call root node to start algorithm
-//        try {
-//            System.out.println("Root notified to start algorithm");
-//            bootstrapServer.startAlgorithmFromRootNode();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            System.out.println("Cannot connect to root node");
-//            return;
-//        }
-//
-//        //ask each node for their neighbours in a spanning tree
-//        try {
-//            System.out.println("getting children from nodes");
-//            bootstrapServer.getTreeStructure();
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            System.out.println("Cannot connect to some node");
-//            return;
-//        }
-//
-//        //draw spanning tree
-//        for (NodeInfo node: bootstrapServer.nodeMap.values()) {
-//            System.out.print(node.getId() + ": ");
-//            for (NodeInfo child: node.getChildren()) {
-//                System.out.print(child.getId() + ", ");
-//            }
-//            System.out.println();
-//        }
-    }
 
+        //wait for all nodes to connect themselves
+        while (bootstrapServer.finishedSetupConnections.get() < bootstrapServer.nodeMap.size()) {
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+        //call root node to start algorithm
+        try {
+            bootstrapServer.pingAndWait("root");
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Cannot connect to root node");
+            return;
+        }
+
+        //wait other nodes to also finish algorithm
+        bootstrapServer.waitForTerminations();
+
+        //ask each node for their neighbours in a spanning tree
+        try {
+            System.out.println("getting children from nodes");
+            bootstrapServer.getTreeStructure();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.out.println("Cannot connect to some node");
+            return;
+        }
+
+        //draw spanning tree
+        for (NodeInfo node: bootstrapServer.nodeMap.values()) {
+            System.out.print(node.getId() + ": ");
+            for (NodeInfo child: node.getChildren()) {
+                System.out.print(child.getId() + ", ");
+            }
+            System.out.println();
+        }
+        bootstrapServer.drawGraph();
+
+    }
 }

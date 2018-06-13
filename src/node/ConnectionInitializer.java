@@ -26,7 +26,6 @@ public class ConnectionInitializer implements Runnable{
                 neighbourNode.setSocket(socket);
                 neighbourNode.getOutWriter().println(node.getId());
                 connectionsCount.incrementAndGet();
-                //socket.close(); this should remain open
             } catch (IOException e) {
                 //e.printStackTrace();
                 System.out.println("...");

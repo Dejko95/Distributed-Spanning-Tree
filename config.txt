@@ -1,0 +1,9 @@
+bootstrap localhost 6000
+root localhost 6001
+node_a localhost 6002
+node_b localhost 6003
+
+root node_a
+root node_b
+node_a node_b
+

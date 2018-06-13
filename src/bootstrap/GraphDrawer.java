@@ -33,7 +33,19 @@ public class GraphDrawer extends JFrame {
             double angle = 2 * Math.PI / nodeCount;
             double currAngle = Math.PI;
             System.out.println(angle);
+            NodeInfo root = nodeMap.get("root");
+            {
+                int x = 300 + (int)(Math.sin(currAngle) * 250);
+                int y = 300 + (int)(Math.cos(currAngle) * 250);
+                System.out.println(x + " " + y);
+                root.setX(x);
+                root.setY(y);
+                currAngle += angle;
+            }
             for (NodeInfo node: nodeMap.values()) {
+                if (node.getId().equals("root")) {
+                    continue;
+                }
                 int x = 300 + (int)(Math.sin(currAngle) * 250);
                 int y = 300 + (int)(Math.cos(currAngle) * 250);
                 System.out.println(x + " " + y);
@@ -44,6 +56,7 @@ public class GraphDrawer extends JFrame {
 
             g.setColor(Color.DARK_GRAY);
             //draw edges
+
             for (NodeInfo node: nodeMap.values()) {
                 for (NodeInfo child: node.getChildren()) {
                     g.drawLine(node.getX(), node.getY(), child.getX(), child.getY());

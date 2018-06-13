@@ -16,16 +16,15 @@ public class ServerThread implements Runnable {
         this.socket = socket;
     }
 
+    static int counter = 1;
+
     @Override
     public void run() {
+        int x = counter++;
+        System.out.println("Thread started-------------" + x);
         try {
             PrintWriter out=new PrintWriter(socket.getOutputStream(),true);
             BufferedReader in=new BufferedReader(new InputStreamReader(socket.getInputStream()));
-//            while (true) {
-//                String message = in.readLine();
-//                System.out.println("msg: " + message);
-//                if (message.length() > 1000) break;
-//            }
             String messageID = in.readLine();
             System.out.println("messageID: " + messageID);
             for (NeighbourNode neighbour: node.getNeighbours()) {
@@ -35,52 +34,31 @@ public class ServerThread implements Runnable {
             }
 
 
-            while (true) {
                 String message = in.readLine();
                 System.out.println("from " + (neighbourNode != null ? neighbourNode.getId() : "bootstrap") + ": " + message);
                 if (message.equals("start")) {
                     node.getParent().set(new NeighbourNode(node.getId(), node.getHost(), node.getPort()));
                     queryNeighbours();
-                    while (node.getChildren().size() + node.getUnrelated().size() < node.getNeighbours().size() - 1) {
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
-                        }
-                        System.out.println("children: " + node.getChildren().size() + ", unrelated: " + node.getUnrelated().size());
-                    }
+                    waitForTermination();
                     System.out.println("finished");
                     out.println("finished");
-                    socket.close();
                     System.out.println("Finish thread " + (neighbourNode != null ? neighbourNode.getId() : "bootstrap"));
-                    return;
+                } else if (message.equals("wait")) {
+                    waitForTermination();
+                    System.out.println("finished");
+                    out.println("finished");
                 } else if (message.equals("query")) {
-                    //compare and set parent
                     if (node.getParent().compareAndSet(null, neighbourNode)) {
                         accept();
                         queryNeighbours();
-                        if (node.getChildren().size() + node.getUnrelated().size() == node.getNeighbours().size() - 1) {
-                            socket.close();
-                            System.out.println("Finish thread " + (neighbourNode != null ? neighbourNode.getId() : "bootstrap"));
-                            return;
-                        }
                     } else {
+                        node.getUnrelated().add(neighbourNode);
                         reject();
                     }
                 } else if (message.equals("accept")) {
                     node.getChildren().add(neighbourNode);
-                    if (node.getChildren().size() + node.getUnrelated().size() == node.getNeighbours().size() - 1) {
-                        socket.close();
-                        System.out.println("Finish thread " + (neighbourNode != null ? neighbourNode.getId() : "bootstrap"));
-                        return;
-                    }
                 } else if (message.equals("reject")) {
                     node.getUnrelated().add(neighbourNode);
-                    if (node.getChildren().size() + node.getUnrelated().size() == node.getNeighbours().size() - 1) {
-                        socket.close();
-                        System.out.println("Finish thread " + (neighbourNode != null ? neighbourNode.getId() : "bootstrap"));
-                        return;
-                    }
                 } else if (message.equals("get_children")) {
                     StringBuilder response = new StringBuilder("");
                     for (NeighbourNode child: node.getChildren()) {
@@ -88,30 +66,54 @@ public class ServerThread implements Runnable {
                     }
                     System.out.println(response.toString());
                     out.println(response.toString());
-                    socket.close();
                     System.out.println("Finish thread " + (neighbourNode != null ? neighbourNode.getId() : "bootstrap"));
-                    return;
                 }
-
-            }
+                socket.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println("Thread finished-------------" + x);
+    }
 
+    private void waitForTermination() {
+        while (node.getChildren().size() + node.getUnrelated().size() < node.getNeighbours().size() - 1 || node.getParent().get() == null) {
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+            System.out.println("children: " + node.getChildren().size() + ", unrelated: " + node.getUnrelated().size());
+        }
+        System.out.println("termination");
     }
 
     private void accept() {
         neighbourNode.getOutWriter().println("accept");
+        try {
+            neighbourNode.getSocket().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void reject() {
         neighbourNode.getOutWriter().println("reject");
+        try {
+            neighbourNode.getSocket().close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void queryNeighbours() {
         for (NeighbourNode neighbour: node.getNeighbours()) {
             if (!neighbour.equals(node.getParent().get())) {
                 neighbour.getOutWriter().println("query");
+                try {
+                    neighbour.getSocket().close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
